@@ -1,0 +1,12 @@
+# ADead-BIB HEX Execution Policy
+# "Above CUDA, below frameworks, next to the runtime."
+#
+# Edge/Mobile Policy - Power-conscious, strict
+
+name: edge
+min_elements: 500000
+min_flops_per_byte: 1.0
+require_persistence: true
+max_pcie_overhead_percent: 20
+strict_mode: true
+power_aware: true

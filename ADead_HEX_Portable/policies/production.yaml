@@ -1,0 +1,12 @@
+# ADead-BIB HEX Execution Policy
+# "Above CUDA, below frameworks, next to the runtime."
+# 
+# Production Policy - Conservative, safe defaults
+
+name: production
+min_elements: 100000
+min_flops_per_byte: 0.5
+require_persistence: true
+max_pcie_overhead_percent: 30
+strict_mode: true
+power_aware: false

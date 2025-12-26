@@ -100,6 +100,7 @@ Reason: Kernel too small, transfers dominate
 
 # 🔥 ADead-BIB HEX
 
-**The GPU Governor**
+**Execution Policy Engine**
 
+> "Above CUDA, below frameworks, next to the runtime."
 > "CUDA gives power. ADead-BIB gives judgment."

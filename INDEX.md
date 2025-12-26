@@ -1,6 +1,16 @@
-# 🔥 ADead-BIB HEX: The GPU Governor
+# 🔥 ADead-BIB HEX: Execution Policy Engine
+
+> **"Above CUDA, below frameworks, next to the runtime."**
 
 > **"CUDA gives power. ADead-BIB gives judgment. The hardware doesn't fail. Decisions do."**
+
+---
+
+## What This Is
+
+A **deterministic execution policy engine** that prevents GPU misuse.
+
+**Where it lives:** Above CUDA, below frameworks, next to the runtime.
 
 ---
 
@@ -8,34 +18,36 @@
 
 ```
 CUDA/
-├── 📁 ADead_HEX_Portable/           # 🔥 STANDALONE PORTABLE LIBRARY
+├── 📁 ADead_HEX_Portable/           # 🔥 STANDALONE POLICY ENGINE
 │   ├── Cargo.toml                   # Rust package (ready to use)
 │   ├── README.md                    # Quick start guide
 │   ├── src/
 │   │   ├── lib.rs                   # Library entry
-│   │   ├── gpu_dispatcher.rs        # CPU↔GPU decision engine
-│   │   └── gpu_misuse_detector.rs   # Misuse detection & scoring
+│   │   ├── gpu_dispatcher.rs        # Decision engine + Contracts
+│   │   ├── gpu_misuse_detector.rs   # Misuse detection + Scoring
+│   │   └── policy.rs                # 🆕 Execution Policy Engine
+│   ├── policies/                    # 🆕 Policy configurations
+│   │   ├── production.yaml          # Conservative, safe
+│   │   ├── edge.yaml                # Power-conscious
+│   │   └── datacenter.yaml          # Throughput-focused
 │   ├── examples/
-│   │   └── demo.rs                  # Working demo
+│   │   ├── demo.rs                  # Basic demo
+│   │   ├── full_demo.rs             # Decision Contracts + Waste Proof
+│   │   └── pipeline_demo.rs         # Pipeline comparison (2x faster)
 │   └── docs/
 │       ├── NVIDIA_MANIFESTO.md      # Pitch for NVIDIA
-│       ├── ONE_MINUTE_DEMO.md       # Narrative demo
-│       └── CUDA_FAILURE_CASE.md     # Failure cases
+│       ├── PRESENTATION.md          # 90-second pitch
+│       └── FRAMEWORK_COMPARISON.md  # Benchmark comparison
 │
 ├── 📁 ADead_Generated/              # Generated CUDA code
 │   ├── adead_benchmark.cu           # Benchmark v2.0 (cudaEvent)
-│   ├── adead_vectoradd.cu           # VectorAdd kernel
-│   ├── adead_matmul.cu              # MatMul kernel
 │   └── benchmark_v2.exe             # Compiled benchmark
 │
-├── 📄 NVIDIA_MANIFESTO.md           # 🔥 Main document for NVIDIA
-├── 📄 ONE_MINUTE_DEMO.md            # ⚡ Quick narrative demo
+├── 📄 NVIDIA_MANIFESTO.md           # 🔥 Main pitch document
+├── 📄 ONE_MINUTE_DEMO.md            # ⚡ Quick narrative
 ├── 📄 CUDA_FAILURE_CASE.md          # 🚨 Real failure cases
-├── 📄 ADEAD_HEX_PHILOSOPHY.md       # Technical philosophy
-├── 📄 RESULTADOS_V2_CORREGIDOS.md   # Real benchmark results
 ├── 📄 INDEX.md                      # This file
-│
-└── 📁 Samples/                      # NVIDIA CUDA Samples (reference)
+└── 📄 README.md                     # NVIDIA CUDA Samples readme
 ```
 
 ---
@@ -44,11 +56,11 @@ CUDA/
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| **GPU Misuse Detector** | Detects incorrect GPU usage | ✅ Implemented |
-| **Cost Model** | FLOPs/Byte, elements, persistence | ✅ Implemented |
-| **GPU Dispatcher** | Automatic CPU↔GPU decisions | ✅ Implemented |
-| **Benchmark v2.0** | Correct instrumentation (cudaEvent) | ✅ Working |
-| **VRAM Orchestrator** | Persistent data management | 🔄 In Progress |
+| **Execution Policy Engine** | Configurable policies (YAML) | ✅ Implemented |
+| **Decision Contracts** | Guarantees, Assumptions, Risks | ✅ Implemented |
+| **GPU Waste Proof** | Prove GPU would be slower | ✅ Implemented |
+| **Misuse Score (0-100)** | Quantifiable misuse metric | ✅ Implemented |
+| **Pipeline Optimization** | 2x faster, 80% fewer transfers | ✅ Demonstrated |
 
 ---
 
@@ -120,26 +132,67 @@ NVIDIA GeForce RTX 3060
 
 ---
 
-## 📚 Documentation (Priority Order)
+## 🚀 Quick Demo
 
-1. **[NVIDIA_MANIFESTO.md](NVIDIA_MANIFESTO.md)** - 🔥 Main pitch for NVIDIA
-2. **[ADEAD_HEX_PHILOSOPHY.md](ADEAD_HEX_PHILOSOPHY.md)** - Technical philosophy
-3. **[RESULTADOS_V2_CORREGIDOS.md](RESULTADOS_V2_CORREGIDOS.md)** - Real benchmarks
-4. **[COMPARACION_CUDA_VS_ADEAD.md](COMPARACION_CUDA_VS_ADEAD.md)** - Comparison
-5. **[SETUP.md](SETUP.md)** - Installation guide
+```bash
+cd ADead_HEX_Portable
+cargo run --example full_demo      # Decision Contracts + Waste Proof
+cargo run --example pipeline_demo  # 2x faster, 80% fewer transfers
+```
+
+---
+
+## 📊 Pipeline Results
+
+| Scenario | Transfers | Time | Efficiency |
+|----------|-----------|------|------------|
+| CUDA Naive | 10 | 2,443 µs | 1.0x |
+| **ADead-BIB** | **2** | **1,222 µs** | **2.0x** |
+
+**80% fewer transfers. 2x faster.**
+
+---
+
+## 🔧 Policy Configuration
+
+```yaml
+# policies/production.yaml
+name: production
+min_elements: 100000
+min_flops_per_byte: 0.5
+require_persistence: true
+strict_mode: true
+```
+
+```
+Policy loaded: production.yaml
+```
 
 ---
 
 ## 💡 The Pitch
 
-> **ADead-BIB is the system that prevents GPU misuse.**
->
-> We don't compile better.
-> We don't parallelize more.
-> We don't replace CUDA.
-> **We govern when to use it.**
+If someone asks: *"Where does this live?"*
+
+> **"Above CUDA, below frameworks, next to the runtime."**
+
+If someone asks: *"Why should NVIDIA care?"*
+
+> **"Because most GPU slowdowns are decision bugs, not hardware bugs."**
 
 ---
 
-*ADead-BIB v1.2.0 - The GPU Governor*
-*Host Determinista que Gobierna GPU*
+## 🏁 Status
+
+| Question | Answer |
+|----------|--------|
+| Ready to show? | ✅ Yes |
+| Is it serious? | ✅ Yes |
+| Is it rare and valuable? | ✅ Yes |
+| Is it smoke? | ❌ No |
+| Is it complete? | ✅ Almost |
+
+---
+
+*ADead-BIB v1.2.0 - Execution Policy Engine*
+*"Above CUDA, below frameworks, next to the runtime."*

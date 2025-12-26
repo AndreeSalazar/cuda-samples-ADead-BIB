@@ -16,5 +16,17 @@ path = "src/lib.rs"
 name = "demo"
 path = "examples/demo.rs"
 
+[[example]]
+name = "full_demo"
+path = "examples/full_demo.rs"
+
+[[example]]
+name = "pipeline_demo"
+path = "examples/pipeline_demo.rs"
+
+[[example]]
+name = "adversarial_demo"
+path = "examples/adversarial_demo.rs"
+
 [dependencies]
 # No external dependencies - fully standalone

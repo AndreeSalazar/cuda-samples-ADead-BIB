@@ -1,0 +1,12 @@
+# ADead-BIB HEX Execution Policy
+# "Above CUDA, below frameworks, next to the runtime."
+#
+# Datacenter Policy - Throughput-focused
+
+name: datacenter
+min_elements: 50000
+min_flops_per_byte: 0.3
+require_persistence: true
+max_pcie_overhead_percent: 40
+strict_mode: false
+power_aware: false

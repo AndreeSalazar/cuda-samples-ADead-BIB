@@ -179,4 +179,5 @@ ADead-BIB:
 
 > **"If CUDA is slow, ADead-BIB will say so. If CUDA is fast, ADead-BIB will use it."**
 
-*ADead-BIB HEX - The GPU Governor*
+*ADead-BIB HEX - Execution Policy Engine*
+*"Above CUDA, below frameworks, next to the runtime."*

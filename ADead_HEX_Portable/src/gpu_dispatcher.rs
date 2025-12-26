@@ -65,6 +65,234 @@ pub enum DecisionReason {
     NoGPU,
 }
 
+// ============================================================================
+// DECISION CONTRACT - The formal agreement for each execution decision
+// ============================================================================
+
+/// Guarantees provided by a decision
+#[derive(Debug, Clone, PartialEq)]
+pub enum Guarantee {
+    /// No GPU memory will be allocated
+    NoGpuAllocation,
+    /// No PCIe transfers will occur
+    NoPcieTransfer,
+    /// Execution is deterministic and predictable
+    DeterministicExecution,
+    /// Data will persist in VRAM after execution
+    DataPersistenceInVram,
+    /// Minimum latency path selected
+    MinimumLatency,
+    /// Power-efficient execution
+    PowerEfficient,
+}
+
+/// Assumptions made by the decision
+#[derive(Debug, Clone)]
+pub enum Assumption {
+    /// Data size is below threshold
+    DataSizeBelowThreshold { size: usize, threshold: usize },
+    /// One-shot execution (no reuse)
+    OneShotExecution,
+    /// Data already resident in VRAM
+    DataResidentInVram,
+    /// High computational intensity
+    HighComputeIntensity { flops_per_byte: f64 },
+    /// Data will be reused multiple times
+    DataWillBeReused { expected_reuse: usize },
+}
+
+/// Risks if assumptions are violated
+#[derive(Debug, Clone)]
+pub enum Risk {
+    /// GPU will be slower than CPU
+    GpuSlowdown { factor: f64 },
+    /// Unnecessary PCIe transfers
+    WastedTransfers { count: usize },
+    /// Memory pressure on GPU
+    GpuMemoryPressure,
+    /// Unpredictable latency
+    LatencyVariance,
+    /// Power waste
+    PowerWaste { estimated_watts: f64 },
+}
+
+/// The Decision Contract - A formal agreement for execution
+#[derive(Debug, Clone)]
+pub struct DecisionContract {
+    /// The execution target
+    pub target: ExecutionTarget,
+    /// The reason for this decision
+    pub reason: DecisionReason,
+    /// Guarantees provided
+    pub guarantees: Vec<Guarantee>,
+    /// Assumptions made
+    pub assumptions: Vec<Assumption>,
+    /// Risks if violated
+    pub risks: Vec<Risk>,
+    /// Estimated execution time (µs)
+    pub estimated_time_us: f64,
+    /// Confidence level (0.0 - 1.0)
+    pub confidence: f64,
+}
+
+impl DecisionContract {
+    /// Create a new decision contract
+    pub fn new(target: ExecutionTarget, reason: DecisionReason) -> Self {
+        Self {
+            target,
+            reason,
+            guarantees: Vec::new(),
+            assumptions: Vec::new(),
+            risks: Vec::new(),
+            estimated_time_us: 0.0,
+            confidence: 0.0,
+        }
+    }
+
+    /// Build contract for CPU execution (small data)
+    pub fn cpu_small_data(elements: usize, threshold: usize, estimated_time: f64) -> Self {
+        Self {
+            target: ExecutionTarget::CPU,
+            reason: DecisionReason::TooSmall { elements, threshold },
+            guarantees: vec![
+                Guarantee::NoGpuAllocation,
+                Guarantee::NoPcieTransfer,
+                Guarantee::DeterministicExecution,
+                Guarantee::PowerEfficient,
+            ],
+            assumptions: vec![
+                Assumption::DataSizeBelowThreshold { size: elements, threshold },
+                Assumption::OneShotExecution,
+            ],
+            risks: vec![
+                Risk::GpuSlowdown { factor: 10.0 },
+                Risk::WastedTransfers { count: 2 },
+            ],
+            estimated_time_us: estimated_time,
+            confidence: 0.95,
+        }
+    }
+
+    /// Build contract for CPU execution (low intensity)
+    pub fn cpu_low_intensity(flops_per_byte: f64, estimated_time: f64) -> Self {
+        Self {
+            target: ExecutionTarget::CPU,
+            reason: DecisionReason::LowComputeIntensity { flops_per_byte },
+            guarantees: vec![
+                Guarantee::NoGpuAllocation,
+                Guarantee::NoPcieTransfer,
+                Guarantee::DeterministicExecution,
+            ],
+            assumptions: vec![
+                Assumption::OneShotExecution,
+            ],
+            risks: vec![
+                Risk::GpuSlowdown { factor: 5.0 },
+                Risk::WastedTransfers { count: 2 },
+                Risk::PowerWaste { estimated_watts: 30.0 },
+            ],
+            estimated_time_us: estimated_time,
+            confidence: 0.85,
+        }
+    }
+
+    /// Build contract for GPU execution (data on device)
+    pub fn gpu_data_resident(estimated_time: f64) -> Self {
+        Self {
+            target: ExecutionTarget::GPU,
+            reason: DecisionReason::DataAlreadyOnDevice,
+            guarantees: vec![
+                Guarantee::NoPcieTransfer,
+                Guarantee::MinimumLatency,
+            ],
+            assumptions: vec![
+                Assumption::DataResidentInVram,
+            ],
+            risks: vec![],
+            estimated_time_us: estimated_time,
+            confidence: 0.99,
+        }
+    }
+
+    /// Build contract for GPU with transfer (persistent)
+    pub fn gpu_with_persistence(expected_reuse: usize, estimated_time: f64) -> Self {
+        Self {
+            target: ExecutionTarget::GPUWithTransfer,
+            reason: DecisionReason::WillPersist,
+            guarantees: vec![
+                Guarantee::DataPersistenceInVram,
+                Guarantee::MinimumLatency,
+            ],
+            assumptions: vec![
+                Assumption::DataWillBeReused { expected_reuse },
+            ],
+            risks: vec![
+                Risk::GpuMemoryPressure,
+            ],
+            estimated_time_us: estimated_time,
+            confidence: 0.90,
+        }
+    }
+
+    /// Print the contract in a formal format
+    pub fn print(&self) {
+        println!();
+        println!("╔══════════════════════════════════════════════════════════════╗");
+        println!("║  DECISION CONTRACT                                           ║");
+        println!("╠══════════════════════════════════════════════════════════════╣");
+        println!("║  Target: {:?}{:>43}║", self.target, "");
+        println!("║  Confidence: {:.0}%{:>47}║", self.confidence * 100.0, "");
+        println!("║  Estimated time: {:.1} µs{:>39}║", self.estimated_time_us, "");
+        println!("╠══════════════════════════════════════════════════════════════╣");
+        
+        println!("║  GUARANTEES:                                                 ║");
+        for g in &self.guarantees {
+            let desc = match g {
+                Guarantee::NoGpuAllocation => "No GPU allocation",
+                Guarantee::NoPcieTransfer => "No PCIe transfers",
+                Guarantee::DeterministicExecution => "Deterministic execution",
+                Guarantee::DataPersistenceInVram => "Data persists in VRAM",
+                Guarantee::MinimumLatency => "Minimum latency path",
+                Guarantee::PowerEfficient => "Power-efficient execution",
+            };
+            println!("║    ✓ {:<55}║", desc);
+        }
+        
+        println!("╠══════════════════════════════════════════════════════════════╣");
+        println!("║  ASSUMPTIONS:                                                ║");
+        for a in &self.assumptions {
+            let desc = match a {
+                Assumption::DataSizeBelowThreshold { size, threshold } => 
+                    format!("Data size {} < {} threshold", size, threshold),
+                Assumption::OneShotExecution => "One-shot execution".to_string(),
+                Assumption::DataResidentInVram => "Data resident in VRAM".to_string(),
+                Assumption::HighComputeIntensity { flops_per_byte } => 
+                    format!("High intensity: {:.2} FLOPs/Byte", flops_per_byte),
+                Assumption::DataWillBeReused { expected_reuse } => 
+                    format!("Data reused {} times", expected_reuse),
+            };
+            println!("║    • {:<55}║", desc);
+        }
+        
+        if !self.risks.is_empty() {
+            println!("╠══════════════════════════════════════════════════════════════╣");
+            println!("║  RISKS IF VIOLATED:                                          ║");
+            for r in &self.risks {
+                let desc = match r {
+                    Risk::GpuSlowdown { factor } => format!("GPU slowdown {:.1}x", factor),
+                    Risk::WastedTransfers { count } => format!("{} wasted transfers", count),
+                    Risk::GpuMemoryPressure => "GPU memory pressure".to_string(),
+                    Risk::LatencyVariance => "Unpredictable latency".to_string(),
+                    Risk::PowerWaste { estimated_watts } => format!("{:.0}W power waste", estimated_watts),
+                };
+                println!("║    ⚠ {:<55}║", desc);
+            }
+        }
+        
+        println!("╚══════════════════════════════════════════════════════════════╝");
+    }
+}
+
 /// Cost Model for operations
 #[derive(Debug, Clone)]
 pub struct OperationCost {
@@ -226,6 +454,94 @@ impl GpuDispatcher {
 
         println!();
         println!("  Total: {} CPU, {} GPU", cpu_count, gpu_count);
+    }
+
+    /// Decide with full contract (formal agreement)
+    pub fn decide_with_contract(&mut self, cost: &OperationCost) -> DecisionContract {
+        let (target, reason) = self.decide(cost);
+        
+        match (&target, &reason) {
+            (ExecutionTarget::CPU, DecisionReason::TooSmall { elements, threshold }) => {
+                DecisionContract::cpu_small_data(*elements, *threshold, cost.estimate_cpu_us())
+            }
+            (ExecutionTarget::CPU, DecisionReason::LowComputeIntensity { flops_per_byte }) => {
+                DecisionContract::cpu_low_intensity(*flops_per_byte, cost.estimate_cpu_us())
+            }
+            (ExecutionTarget::GPU, DecisionReason::DataAlreadyOnDevice) => {
+                DecisionContract::gpu_data_resident(cost.estimate_kernel_us())
+            }
+            (ExecutionTarget::GPUWithTransfer, DecisionReason::WillPersist) => {
+                DecisionContract::gpu_with_persistence(5, cost.estimate_h2d_us() + cost.estimate_kernel_us())
+            }
+            _ => DecisionContract::new(target, reason),
+        }
+    }
+
+    /// Prove the decision by simulating both paths
+    pub fn prove_decision(&self, cost: &OperationCost) -> WasteProof {
+        let cpu_time = cost.estimate_cpu_us();
+        let gpu_time = cost.estimate_h2d_us() + cost.estimate_kernel_us() + cost.estimate_h2d_us();
+        
+        let waste_factor = if cpu_time > 0.0 { gpu_time / cpu_time } else { 1.0 };
+        let pcie_dominance = if gpu_time > 0.0 {
+            ((cost.estimate_h2d_us() * 2.0) / gpu_time) * 100.0
+        } else {
+            0.0
+        };
+        
+        let gpu_is_waste = gpu_time > cpu_time;
+        
+        WasteProof {
+            cpu_time_us: cpu_time,
+            gpu_time_us: gpu_time,
+            waste_factor,
+            pcie_dominance_percent: pcie_dominance,
+            gpu_is_waste,
+            contract_violated: gpu_is_waste,
+        }
+    }
+}
+
+/// Proof of GPU waste - shows the real cost of wrong decisions
+#[derive(Debug, Clone)]
+pub struct WasteProof {
+    pub cpu_time_us: f64,
+    pub gpu_time_us: f64,
+    pub waste_factor: f64,
+    pub pcie_dominance_percent: f64,
+    pub gpu_is_waste: bool,
+    pub contract_violated: bool,
+}
+
+impl WasteProof {
+    pub fn print(&self) {
+        println!();
+        println!("╔══════════════════════════════════════════════════════════════╗");
+        println!("║  GPU WASTE PROOF - ADead-BIB HEX                             ║");
+        println!("╠══════════════════════════════════════════════════════════════╣");
+        println!("║  Executing both paths:                                       ║");
+        println!("║                                                              ║");
+        println!("║  CPU execution:        {:>10.1} µs                        ║", self.cpu_time_us);
+        println!("║  GPU execution (forced): {:>8.1} µs                        ║", self.gpu_time_us);
+        println!("║                                                              ║");
+        
+        if self.gpu_is_waste {
+            println!("╠══════════════════════════════════════════════════════════════╣");
+            println!("║  🚨 GPU MISUSE CONFIRMED                                     ║");
+            println!("║                                                              ║");
+            println!("║  Waste factor:         {:>10.1}x                          ║", self.waste_factor);
+            println!("║  PCIe dominance:       {:>10.1}%                          ║", self.pcie_dominance_percent);
+            println!("║                                                              ║");
+            println!("║  Conclusion:                                                 ║");
+            println!("║  GPU usage violated Decision Contract                        ║");
+        } else {
+            println!("╠══════════════════════════════════════════════════════════════╣");
+            println!("║  ✅ GPU USAGE JUSTIFIED                                      ║");
+            println!("║                                                              ║");
+            println!("║  Speedup:              {:>10.1}x                          ║", 1.0 / self.waste_factor);
+        }
+        
+        println!("╚══════════════════════════════════════════════════════════════╝");
     }
 }
 

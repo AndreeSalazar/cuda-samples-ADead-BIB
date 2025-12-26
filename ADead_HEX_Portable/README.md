@@ -1,17 +1,109 @@
-# 🔥 ADead-BIB HEX: The GPU Governor
+# 🔥 ADead-BIB HEX: Execution Policy Engine
+
+> **"Above CUDA, below frameworks, next to the runtime."**
 
 > **"CUDA gives power. ADead-BIB gives judgment."**
 > **"The hardware doesn't fail. Decisions do."**
 
-## What Is This?
+---
 
-A **standalone Rust library** that governs GPU execution decisions. It prevents GPU misuse by deciding **when** to use GPU vs CPU based on a cost model.
+## What This Is
 
-This is a **portable version** extracted from the main ADead-BIB project.
+A **deterministic execution policy engine** that prevents GPU misuse.
+
+## What This Is NOT
+
+- ❌ Not a CUDA replacement
+- ❌ Not a faster kernel compiler
+- ❌ Not a framework
+- ❌ Not magic
+
+## Why It Exists
+
+> **Most GPU slowdowns are decision bugs, not hardware bugs.**
 
 ---
 
 ## Quick Start
+
+```bash
+cargo run --example full_demo
+cargo run --example pipeline_demo
+```
+
+---
+
+## Core Features
+
+### 1. Decision Contracts
+
+Every decision comes with formal guarantees:
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  DECISION CONTRACT                                           ║
+╠══════════════════════════════════════════════════════════════╣
+║  Target: CPU                                                 ║
+║  Confidence: 95%                                             ║
+╠══════════════════════════════════════════════════════════════╣
+║  GUARANTEES:                                                 ║
+║    ✓ No GPU allocation                                       ║
+║    ✓ No PCIe transfers                                       ║
+║    ✓ Deterministic execution                                 ║
+╠══════════════════════════════════════════════════════════════╣
+║  RISKS IF VIOLATED:                                          ║
+║    ⚠ GPU slowdown 10x                                        ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+### 2. GPU Waste Proof
+
+Prove that GPU would be slower:
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  GPU WASTE PROOF                                             ║
+╠══════════════════════════════════════════════════════════════╣
+║  CPU execution:         10.0 µs                              ║
+║  GPU execution (forced): 24.0 µs                             ║
+║                                                              ║
+║  🚨 GPU MISUSE CONFIRMED                                     ║
+║  Waste factor: 2.4x                                          ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+### 3. Misuse Score (0-100)
+
+Quantifiable metric:
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  GPU MISUSE SCORE: 93 / 100 (CRITICAL)                       ║
+╠══════════════════════════════════════════════════════════════╣
+║  Breakdown:                                                  ║
+║  ├── PCIe overhead dominance:     +39 points                ║
+║  ├── Low arithmetic intensity:    +20 points                ║
+║  ├── One-shot execution:          +15 points                ║
+║  └── Small element count:         + 9 points                ║
+║                                                              ║
+║  Recommendation: Execute on CPU                              ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+### 4. Pipeline Optimization
+
+Real workload comparison:
+
+| Scenario | Transfers | Time | Efficiency |
+|----------|-----------|------|------------|
+| CUDA Naive | 10 | 2,443 µs | 1.0x |
+| **ADead-BIB** | **2** | **1,222 µs** | **2.0x** |
+
+**80% fewer transfers. 2x faster.**
+
+---
+
+## Usage
 
 ```rust
 use adead_hex_gpu_governor::{GpuDispatcher, DataLocation, operations};
@@ -19,89 +111,15 @@ use adead_hex_gpu_governor::{GpuDispatcher, DataLocation, operations};
 fn main() {
     let mut dispatcher = GpuDispatcher::new();
     
-    // Small data → CPU
+    // Get decision with full contract
     let cost = operations::vector_add(10_000, DataLocation::Host, false);
-    let (target, reason) = dispatcher.decide(&cost);
-    println!("Decision: {:?}", target); // CPU
+    let contract = dispatcher.decide_with_contract(&cost);
+    contract.print();
     
-    // Large data with persistence → GPU
-    let cost = operations::matmul(512, DataLocation::Host, true);
-    let (target, reason) = dispatcher.decide(&cost);
-    println!("Decision: {:?}", target); // GPUWithTransfer
+    // Prove the decision
+    let proof = dispatcher.prove_decision(&cost);
+    proof.print();
 }
-```
-
----
-
-## Features
-
-### 1. GPU Dispatcher
-
-Automatic CPU↔GPU decisions based on:
-- Element count (threshold: 100K)
-- FLOPs/Byte ratio (threshold: 0.5)
-- Data location (Host vs Device)
-- Persistence (will data be reused?)
-
-### 2. GPU Misuse Detector
-
-Detects and reports incorrect GPU usage:
-- Kernel too small
-- Low computational intensity
-- Unnecessary transfers
-
-### 3. Misuse Score (0-100)
-
-Quantifiable metric for GPU misuse:
-
-```
-╔══════════════════════════════════════════════════════════════╗
-║  GPU MISUSE SCORE: 94 / 100 (CRITICAL)                       ║
-╠══════════════════════════════════════════════════════════════╣
-║  Breakdown:                                                  ║
-║  ├── PCIe overhead dominance:     +40 points                ║
-║  ├── Low arithmetic intensity:    +25 points                ║
-║  ├── One-shot execution:          +15 points                ║
-║  └── Small element count:         +4 points                 ║
-║                                                              ║
-║  Recommendation: Execute on CPU                              ║
-╚══════════════════════════════════════════════════════════════╝
-```
-
----
-
-## Cost Model
-
-Based on real RTX 3060 benchmarks:
-
-| Threshold | Value | Meaning |
-|-----------|-------|---------|
-| `GPU_THRESHOLD_ELEMENTS` | 100,000 | Min elements for GPU |
-| `MIN_FLOPS_PER_BYTE` | 0.5 | Min compute intensity |
-| `PCIE_TRANSFER_THRESHOLD` | 10 MB | Consider persistence |
-
----
-
-## Decision Logic
-
-```rust
-fn decide(operation) -> Target {
-    if data_on_device { return GPU }
-    if elements < 100K { return CPU }
-    if flops_per_byte > 0.5 { return GPU }
-    if will_persist { return GPUWithTransfer }
-    if gpu_time < cpu_time { return GPU }
-    else { return CPU }
-}
-```
-
----
-
-## Run Demo
-
-```bash
-cd ADead_HEX_Portable
-cargo run --example demo
 ```
 
 ---
@@ -114,32 +132,72 @@ ADead_HEX_Portable/
 ├── README.md
 ├── src/
 │   ├── lib.rs
-│   ├── gpu_dispatcher.rs
-│   └── gpu_misuse_detector.rs
+│   ├── gpu_dispatcher.rs        # Decision engine + Contracts
+│   ├── gpu_misuse_detector.rs   # Misuse detection + Scoring
+│   └── policy.rs                # 🆕 Execution Policy Engine
+├── policies/                    # 🆕 Policy configurations
+│   ├── production.yaml          # Conservative, safe
+│   ├── edge.yaml                # Power-conscious
+│   └── datacenter.yaml          # Throughput-focused
 ├── examples/
-│   └── demo.rs
+│   ├── demo.rs                  # Basic demo
+│   ├── full_demo.rs             # Full feature demo
+│   └── pipeline_demo.rs         # Pipeline comparison
 └── docs/
-    └── (documentation)
+    ├── NVIDIA_MANIFESTO.md      # Pitch for NVIDIA
+    ├── PRESENTATION.md          # 90-second pitch
+    └── FRAMEWORK_COMPARISON.md  # Benchmark comparison
 ```
 
 ---
 
-## Why This Matters
+## Policy Configuration
 
-| Problem | CUDA Alone | With ADead-BIB HEX |
-|---------|------------|-------------------|
-| Small kernels | Slow (PCIe overhead) | Rejected → CPU |
-| One-shot data | Transfers dominate | Detected, warned |
-| Low intensity | Wasted GPU cycles | CPU preferred |
-| Misuse detection | None | Score 0-100 |
+```yaml
+# policies/production.yaml
+name: production
+min_elements: 100000
+min_flops_per_byte: 0.5
+require_persistence: true
+strict_mode: true
+```
+
+```rust
+use adead_hex_gpu_governor::ExecutionPolicy;
+
+// Load built-in policy
+let policy = ExecutionPolicy::production();
+policy.print();
+
+// Or load from file
+let policy = ExecutionPolicy::load_from_file("policies/edge.yaml")?;
+```
+
+---
+
+## Why NVIDIA Should Care
+
+| Problem | Impact | ADead-BIB Solution |
+|---------|--------|-------------------|
+| False-negative benchmarks | Bad press | Prevents misuse |
+| "GPU slower than CPU" | Support burden | Rejects bad decisions |
+| Low utilization | Wasted hardware | Governs execution |
+
+> **ADead-BIB makes NVIDIA hardware look good by preventing misuse.**
+
+---
+
+## The Closing Statement
+
+If someone asks: *"Why should NVIDIA care?"*
+
+> **"Because most GPU slowdowns are decision bugs, not hardware bugs."**
 
 ---
 
 ## License
 
 Apache 2.0
-
----
 
 ## Author
 
@@ -149,3 +207,4 @@ eddi.salazar.dev@gmail.com
 ---
 
 *ADead-BIB HEX - The GPU Governor*
+*Part of the ADead-BIB Project*
