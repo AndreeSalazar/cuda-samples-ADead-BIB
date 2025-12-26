@@ -1,0 +1,20 @@
+[package]
+name = "adead-hex-gpu-governor"
+version = "1.0.0"
+edition = "2021"
+authors = ["Eddi Andreé Salazar Matos <eddi.salazar.dev@gmail.com>"]
+description = "ADead-BIB HEX - GPU Governor: Host Determinista que Gobierna Ejecución GPU"
+license = "Apache-2.0"
+repository = "https://github.com/AndreeSalazar/ADead-BIB"
+keywords = ["cuda", "gpu", "dispatcher", "performance", "optimization"]
+categories = ["development-tools", "hardware-support"]
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "demo"
+path = "examples/demo.rs"
+
+[dependencies]
+# No external dependencies - fully standalone
