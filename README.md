@@ -9,9 +9,13 @@
 
 **Same kernels. Same hardware. Fewer transfers.**
 
-![Pipeline Demo](media/pipeline_demo.gif)
+### 📹 Live Demo
+
+![Pipeline Demo](media/Timeline 1.gif)
 
 > Execution Policy Engine preventing GPU misuse at runtime.
+
+### 🎮 Run It Yourself
 
 ---
 
@@ -116,6 +120,17 @@ cargo run --example pipeline_demo
 cargo run --example adversarial_demo
 ```
 
+
+---
+
+## 📊 Results
+
+| Scenario | Transfers | Time | Efficiency |
+|----------|-----------|------|------------|
+| CUDA Naive | 10 | 2,443 µs | 1.0x |
+| **ADead-BIB** | **2** | **1,222 µs** | **2.0x** |
+
+**80% fewer transfers. 2x faster.**
 
 ---
 
