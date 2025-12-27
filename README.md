@@ -4,6 +4,15 @@
 
 > *"Above CUDA, below frameworks, next to the runtime."*
 
+
+## 🔥 Live Demo — CUDA + ADead-BIB
+
+**Same kernels. Same hardware. Fewer transfers.**
+
+![Pipeline Demo](media/pipeline_demo.gif)
+
+> Execution Policy Engine preventing GPU misuse at runtime.
+
 ---
 
 ## TL;DR
@@ -106,6 +115,7 @@ cargo run --example pipeline_demo
 # Adversarial worst-case demo
 cargo run --example adversarial_demo
 ```
+
 
 ---
 
